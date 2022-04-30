@@ -10,6 +10,31 @@
                   src="https://pbs.twimg.com/profile_images/1138509963809165313/V5c3p4CD_400x400.jpg"
                 />
               </q-avatar>
+              <q-btn
+                text-color="deep-orange-10"
+                size="xs"
+                flat
+                icon="more_vert"
+                class="absolute-right"
+              >
+                <q-menu cover anchor="center start">
+                  <q-item clickable>
+                    <q-item-section>
+                      <q-btn
+                        text-color="deep-orange-10"
+                        size="sm"
+                        flat
+                        icon="delete"
+                        class="absolute-right"
+                        unelevated
+                        fab-mini
+                        round
+                        @click="deletePost(post.id)"
+                      />
+                    </q-item-section>
+                  </q-item>
+                </q-menu>
+              </q-btn>
             </q-item-section>
 
             <q-item-section>
@@ -21,22 +46,17 @@
           <q-img :src="post.imageUrl" />
           <q-card-section>
             <div class="row">
-              <div class="col-10">
+              <div class="col-8">
                 <div>{{ post.caption }}</div>
               </div>
-              <div class="col-2 text-caption">
-                <q-icon
-                  size="xs"
-                  name="favorite"
+              <div class="col-4 text-caption text-deep-orange-10 text-bold">
+                <q-btn
+                  flat
+                  round
+                  :label="post.favCount > 0 ? post.favCount : ''"
                   color="pink-6"
-                  v-if="post.favCount > 0"
-                />
-                <span v-if="post.favCount > 0">{{ post.favCount }}</span>
-                <q-icon
-                  size="xs"
-                  name="favorite_border"
-                  color="pink-6"
-                  v-if="post.favCount === 0"
+                  :icon="post.favCount > 0 ? 'favorite' : 'favorite_border'"
+                  @click="increaseFavCount(post.id)"
                 />
               </div>
             </div>
@@ -72,46 +92,49 @@ export default defineComponent({
   name: "PageHome",
   data() {
     return {
-      posts: [
-        {
-          id: 1,
-          caption: "Golden Gate Bridge",
-          date: 1651227055955,
-          location: "Sanfransisco, USA",
-          imageUrl: "https://cdn.quasar.dev/img/parallax2.jpg",
-          favCount: 0,
-        },
-        {
-          id: 2,
-          caption: "Golden Gate Bridge",
-          date: 1651227055955,
-          location: "Sanfransisco, USA",
-          imageUrl: "https://cdn.quasar.dev/img/parallax2.jpg",
-          favCount: 120,
-        },
-        {
-          id: 3,
-          caption: "Golden Gate Bridge",
-          date: 1651227055955,
-          location: "Sanfransisco, USA",
-          imageUrl: "https://cdn.quasar.dev/img/parallax2.jpg",
-          favCount: 0,
-        },
-        {
-          id: 4,
-          caption: "Golden Gate Bridge",
-          date: 1651227055955,
-          location: "Sanfransisco, USA",
-          imageUrl: "https://cdn.quasar.dev/img/parallax2.jpg",
-          favCount: 23,
-        },
-      ],
+      posts: [],
     };
   },
   methods: {
+    deletePost(postId) {
+      this.$q
+        .dialog({
+          title: "Confirm",
+          message: "Are you sure you want to delete?",
+          cancel: true,
+          persistent: true,
+        })
+        .onOk(() => {
+          console.log(">>>> OK");
+        })
+        .onCancel(() => {
+          console.log(">>>> Cancel");
+        });
+    },
+    increaseFavCount(postId) {
+      console.log("postId", postId);
+      //end point call edilecek!
+      this.posts.find((p) => p.id === postId).favCount++;
+    },
     niceDate(aNumericDate) {
       return date.formatDate(aNumericDate, "D MMM YYYY hh:mma");
     },
+    getPosts() {
+      this.$axios
+        .get("http://localhost:3000/posts")
+        .then((response) => {
+          this.posts = response.data;
+        })
+        .catch((err) => {
+          this.$q.dialog({
+            title: "Error getting posts",
+            message: err.message + ",could not connect to Server.",
+          });
+        });
+    },
+  },
+  mounted() {
+    this.getPosts();
   },
 });
 </script>
