@@ -75,7 +75,7 @@
     </q-file>
     <div class="row justify-center q-ma-md">
       <q-input
-        label="Caption"
+        label="Caption*"
         class="col col-sm-6"
         dense
         label-color="deep-orange-10"
@@ -113,6 +113,7 @@
         color="deep-orange-10"
         label="Post"
         @click="addPost"
+        :disable="!post.caption || !post.photo"
       />
     </div>
   </q-page>
@@ -165,14 +166,28 @@ export default defineComponent({
       formData.append("date", this.post.date);
       formData.append("favCount", this.post.favCount);
       formData.append("file", this.post.photo, this.post.id + ".png");
-
+      this.$q.loading.show({
+        message: "Create post is in progress. Hang on...",
+      });
       this.$axios
         .post(`${process.env.API}/createPost`, formData)
         .then((response) => {
-          console.log(response);
+          this.$q.loading.hide();
+          this.$router.push("/");
+          this.$q.notify({
+            message: "New post Added",
+            color: "deep-orange-10",
+            avatar:
+              "https://firebasestorage.googleapis.com/v0/b/tugcircles.appspot.com/o/circles_images%2Favatar_circles.png?alt=media&token=d2c2b3dd-3329-494d-bd83-cf4a3eb14918",
+            actions: [{ label: "Dismiss", color: "white" }],
+          });
         })
         .catch((err) => {
-          console.log(err);
+          this.$q.loading.hide();
+          this.$q.dialog({
+            title: "Error posting image",
+            message: err.message + ",could not connect to Server.",
+          });
         });
     },
     locationSuccess(result) {
@@ -246,6 +261,8 @@ export default defineComponent({
     resetCamera() {
       this.imageCaptured = false;
       this.showFileUploader = false;
+      this.post.photo = null;
+      this.post.caption = "";
       this.initCamera();
       this.firstEntry = true;
     },

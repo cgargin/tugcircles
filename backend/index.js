@@ -12,6 +12,8 @@ const app = express();
 
 /* config firebase */
 const serviceAccount = require("./serviceAccountKey.json");
+const { request } = require("http");
+const { response } = require("express");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: "tugcircles.appspot.com",
@@ -39,6 +41,43 @@ app.get("/posts", (request, response) => {
       });
       response.send(posts);
     });
+});
+
+/* endpoint - deletePost */
+app.post("/deletePost", (request, response) => {
+  response.set("Access-Control-Allow-Origin", "*");
+  const bb = busboy({ headers: request.headers });
+  let fields = {};
+  bb.on("field", (name, val, info) => {
+    fields[name] = val;
+  });
+  bb.on("close", () => {
+    let fName = fields.id + ".png";
+    bucket
+      .file(fName)
+      .delete()
+      .then((res) => {
+        deleteDocument(fields.id);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    function deleteDocument(id) {
+      db.collection("posts")
+        .doc(id)
+        .delete()
+        .then(
+          (res) => {
+            console.log(res);
+            response.send("Post Deleted:" + fields.id);
+          },
+          (err) => {
+            console.log(err);
+          }
+        );
+    }
+  });
+  request.pipe(bb);
 });
 
 /*  endpoint  - createPost */
@@ -89,6 +128,7 @@ app.post("/createPost", (request, response) => {
           caption: fields.caption,
           location: fields.location,
           date: parseInt(fields.date),
+          favCount: parseInt(fields.favCount),
           imageUrl: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${uploadedFile.name}?alt=media&token=${uuid}`,
         })
         .then(() => {
@@ -108,18 +148,32 @@ app.post("/createPost", (request, response) => {
 });
 
 /* endpoint - update favCount */
-// app.post(/posts/?)
-// Create a document reference
-// const cityRef = db.collection('cities').doc('BJ');
-
-// Remove the 'capital' field from the document
-// const res = await cityRef.update({
-//   capital: FieldValue.delete()
-// });
-
-/*endpoint - delete a post */
-// app.post('delete')
-//const res = await db.collection('cities').doc('DC').delete();
+app.post("/updatePost", (request, response) => {
+  response.set("Access-Control-Allow-Origin", "*");
+  const bb = busboy({ headers: request.headers });
+  let fields = {};
+  bb.on("field", (name, val, info) => {
+    fields[name] = val;
+  });
+  bb.on("close", () => {
+    db.collection("posts")
+      .doc(fields.id)
+      .set(
+        {
+          favCount: fields.favCount,
+        },
+        { merge: true }
+      )
+      .then((res) => {
+        console.log(res);
+        response.send("FavCount Updated", fields.id, fields.favCount);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  });
+  request.pipe(bb);
+});
 
 /* listen */
 app.listen(process.env.PORT || 3000);

@@ -12,7 +12,7 @@
               <q-item-section avatar>
                 <q-avatar>
                   <img
-                    src="https://pbs.twimg.com/profile_images/1138509963809165313/V5c3p4CD_400x400.jpg"
+                    src="https://firebasestorage.googleapis.com/v0/b/tugcircles.appspot.com/o/circles_images%2Favatar_circles.png?alt=media&token=d2c2b3dd-3329-494d-bd83-cf4a3eb14918"
                   />
                 </q-avatar>
                 <q-btn
@@ -74,6 +74,17 @@
         </template>
         <template v-else-if="!loadingPosts && posts.length === 0">
           <h5 class="text-center text-grey">No posts yet!</h5>
+          <q-img
+            class="fixed-center rounded-borders"
+            src="https://firebasestorage.googleapis.com/v0/b/tugcircles.appspot.com/o/circles_images%2Favatar_circles.png?alt=media&token=d2c2b3dd-3329-494d-bd83-cf4a3eb14918"
+            spinner-color="white"
+            style="height: 140px; max-width: 150px"
+            :ratio="1"
+          >
+            <div class="absolute-bottom text-h2 text-center text-ms-madi">
+              ug circles
+            </div>
+          </q-img>
         </template>
         <template v-else>
           <div class="q-pa-md">
@@ -144,6 +155,33 @@ export default defineComponent({
     };
   },
   methods: {
+    sendDelete(postId) {
+      let formData = new FormData();
+      formData.append("id", postId);
+      this.$q.loading.show({
+        message: "Delete post is in progress. Hang on...",
+      });
+      this.$axios
+        .post(`${process.env.API}/deletePost`, formData)
+        .then((response) => {
+          this.$q.loading.hide();
+          this.getPosts();
+          this.$q.notify({
+            message: "Post Deleted",
+            color: "deep-orange-10",
+            avatar:
+              "https://firebasestorage.googleapis.com/v0/b/tugcircles.appspot.com/o/circles_images%2Favatar_circles.png?alt=media&token=d2c2b3dd-3329-494d-bd83-cf4a3eb14918",
+            actions: [{ label: "Dismiss", color: "white" }],
+          });
+        })
+        .catch((err) => {
+          this.$q.loading.hide();
+          this.$q.dialog({
+            title: "Error deleting image",
+            message: err.message + ",could not connect to Server.",
+          });
+        });
+    },
     deletePost(postId) {
       this.$q
         .dialog({
@@ -153,7 +191,7 @@ export default defineComponent({
           persistent: true,
         })
         .onOk(() => {
-          console.log(">>>> OK");
+          this.sendDelete(postId);
         })
         .onCancel(() => {
           console.log(">>>> Cancel");
@@ -162,9 +200,24 @@ export default defineComponent({
       //File ları da delete edeceksin. unutma...
     },
     increaseFavCount(postId) {
-      console.log("postId", postId);
       //end point call edilecek!
-      this.posts.find((p) => p.id === postId).favCount++;
+      let selectedPost = this.posts.find((p) => p.id === postId);
+      selectedPost.favCount++;
+      let favCount = selectedPost.favCount;
+      let formData = new FormData();
+      formData.append("id", postId);
+      formData.append("favCount", favCount);
+      this.$axios
+        .post(`${process.env.API}/updatePost`, formData)
+        .then((response) => {
+          console.log("FavCount increased", postId, favCount);
+        })
+        .catch((err) => {
+          this.$q.dialog({
+            title: "Error updating favCount",
+            message: err.message + ",could not connect to Server.",
+          });
+        });
     },
     niceDate(aNumericDate) {
       return date.formatDate(aNumericDate, "D MMM YYYY hh:mma");
