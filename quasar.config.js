@@ -97,12 +97,12 @@ module.exports = configure(function (ctx) {
       // directives: [],
 
       // Quasar plugins
-      plugins: ["Dialog", "Notify","Loading"],
+      plugins: ["Dialog", "Notify", "Loading", "LocalStorage"],
     },
 
     // animations: 'all', // --- includes all animations
     // https://quasar.dev/options/animations
-    animations: [],
+    animations: ["fadeInLeftBig", "fadeOutRightBig"],
 
     // https://v2.quasar.dev/quasar-cli-webpack/developing-ssr/configuring-ssr
     ssr: {
@@ -142,7 +142,7 @@ module.exports = configure(function (ctx) {
         display: "standalone",
         orientation: "portrait",
         background_color: "#ffffff",
-        theme_color: "#027be3",
+        theme_color: "#bf360c",
         icons: [
           {
             src: "icons/icon-128x128.png",

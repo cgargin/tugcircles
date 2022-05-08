@@ -6,7 +6,7 @@
   "author": "Cüneyt Gargın <cgargin@gmail.com>",
   "private": true,
   "scripts": {
-    "test": "echo \"No test specified\" && exit 0"
+    "icons": "icongenie generate -i app-icon.png --skip-trim --theme-color bf360c"
   },
   "dependencies": {
     "@quasar/extras": "^1.0.0",
@@ -18,7 +18,8 @@
     "vue-router": "^4.0.0"
   },
   "devDependencies": {
-    "@quasar/app-webpack": "^3.0.0"
+    "@quasar/app-webpack": "^3.0.0",
+    "workbox-webpack-plugin": "^6.5.3"
   },
   "browserslist": [
     "last 10 Chrome versions",

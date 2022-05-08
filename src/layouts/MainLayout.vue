@@ -1,6 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header class="bg-deep-orange-1">
+    <q-header class="bg-deep-orange-10">
       <q-toolbar
         class="bg-deep-orange-10 constrain"
         indicator-color="transparent"
@@ -28,17 +28,68 @@
         />
       </q-toolbar>
     </q-header>
-    <q-footer class="bg-deep-orange-1 small-screen-only" bordered>
-      <q-tabs
-        class="text-deep-orange-10"
-        active-bg-color="deep-orange-10"
-        active-color="white"
-        indicator-color="transparent"
-      >
-        <q-route-tab icon="home" to="/" />
-        <q-route-tab icon="camera" to="/camera" />
-      </q-tabs>
-    </q-footer>
+
+    <transition
+      appear
+      enter-active-class="animated fadeInLeftBig "
+      leave-active-class="animated fadeOutRightBig"
+    >
+      <q-footer class="bg-deep-orange-1" bordered>
+        <div class="bg-primary" v-if="showAppInstallBanner">
+          <div class="constrain">
+            <q-banner
+              inline-actions
+              rounded
+              class="bg-primary text-white"
+              dense
+            >
+              <template v-slot:avatar>
+                <q-avatar
+                  color="white"
+                  text-color="deep-orange-10"
+                  icon="workspaces_filled"
+                  size="32px"
+                />
+              </template>
+              <b>Install circles?</b>
+              <template v-slot:action>
+                <q-btn
+                  flat
+                  label="Yes"
+                  dense
+                  class="q-px-sm"
+                  @click="installApp"
+                />
+                <q-btn
+                  flat
+                  label="Later"
+                  dense
+                  class="q-px-sm"
+                  @click="showAppInstallBanner = false"
+                />
+                <q-btn
+                  flat
+                  label="Never"
+                  dense
+                  class="q-px-sm"
+                  @click="neverShowAppInstallBanner"
+                />
+              </template>
+            </q-banner>
+          </div>
+        </div>
+
+        <q-tabs
+          class="text-deep-orange-10 small-screen-only"
+          active-bg-color="deep-orange-10"
+          active-color="white"
+          indicator-color="transparent"
+        >
+          <q-route-tab icon="home" to="/" />
+          <q-route-tab icon="camera" to="/camera" />
+        </q-tabs>
+      </q-footer>
+    </transition>
     <q-page-container class="bg-deep-orange-1">
       <router-view />
     </q-page-container>
@@ -47,9 +98,50 @@
 
 <script>
 import { defineComponent, ref } from "vue";
+let deferredPrompt;
 
 export default defineComponent({
   name: "MainLayout",
+  data() {
+    return {
+      showAppInstallBanner: false,
+    };
+  },
+  methods: {
+    installApp() {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === "accepted") {
+          console.log("User accepted");
+          this.neverShowAppInstallBanner();
+        } else {
+          console.log("User dismissed");
+        }
+      });
+    },
+    neverShowAppInstallBanner() {
+      this.showAppInstallBanner = false;
+      this.$q.localStorage.set("neverShowAppInstallBanner", "true");
+    },
+  },
+  mounted() {
+    let neverShowAppInstallBanner = this.$q.localStorage.getItem(
+      "neverShowAppInstallBanner"
+    );
+    console.log("neverShowAppInstallBanner", neverShowAppInstallBanner);
+    if (!neverShowAppInstallBanner) {
+      window.addEventListener("beforeinstallprompt", (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later.
+        deferredPrompt = e;
+        // Update UI notify the user they can install the PWA
+        setTimeout(() => {
+          this.showAppInstallBanner = true;
+        }, 3000);
+      });
+    }
+  },
 });
 </script>
 <style lang="sass">
