@@ -107,14 +107,20 @@
       </q-input>
     </div>
     <div class="row justify-center q-mt-lg">
-      <q-btn unelevated rounded color="deep-orange-10" label="Post" />
+      <q-btn
+        unelevated
+        rounded
+        color="deep-orange-10"
+        label="Post"
+        @click="addPost"
+      />
     </div>
   </q-page>
 </template>
 
 <script>
 import { defineComponent } from "vue";
-import { uid } from "quasar";
+import { format, uid } from "quasar";
 require("md-gum-polyfill");
 export default defineComponent({
   name: "PageCamera",
@@ -126,6 +132,7 @@ export default defineComponent({
         location: "",
         photo: null,
         date: Date.now(),
+        favCount: 0,
       },
       videoDevices: [],
       videoDeviceIndex: null,
@@ -150,6 +157,24 @@ export default defineComponent({
     },
   },
   methods: {
+    addPost() {
+      let formData = new FormData();
+      formData.append("id", this.post.id);
+      formData.append("caption", this.post.caption);
+      formData.append("location", this.post.location);
+      formData.append("date", this.post.date);
+      formData.append("favCount", this.post.favCount);
+      formData.append("file", this.post.photo, this.post.id + ".png");
+
+      this.$axios
+        .post(`${process.env.API}/createPost`, formData)
+        .then((response) => {
+          console.log(response);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
     locationSuccess(result) {
       this.post.location = "";
       if (result.data.osmtags.name)

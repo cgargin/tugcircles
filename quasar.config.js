@@ -9,7 +9,8 @@
 // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js
 
 const { configure } = require("quasar/wrappers");
-
+let LOCAL_API = "http://localhost:3000";
+let PROD_API = "https://tugcircles-backend.herokuapp.com";
 module.exports = configure(function (ctx) {
   return {
     // https://v2.quasar.dev/quasar-cli-webpack/supporting-ts
@@ -42,6 +43,11 @@ module.exports = configure(function (ctx) {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js#Property%3A-build
     build: {
+      env: {
+        API: LOCAL_API,
+        // API: PROD_API,
+      },
+
       vueRouterMode: "hash", // available values: 'hash', 'history'
 
       // transpile: false,
