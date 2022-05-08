@@ -1,7 +1,13 @@
 <template>
   <q-page class="constrain-more q-pa-md">
     <div class="camera-frame q-pa-md">
-      <video class="full-width" autoplay ref="video" v-show="!imageCaptured" />
+      <video
+        class="full-width"
+        autoplay
+        ref="video"
+        v-show="!imageCaptured"
+        playsinline
+      />
       <div class="text-caption text-center" v-show="!imageCaptured">
         {{ currentDeviceLabel }}
       </div>

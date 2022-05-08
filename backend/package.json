@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "deploy": "heroku builds:create -a tugcircles-backend",
-    "herokucheck": "heroku logs --tail --app tugcircles-backend",
+    "deploy": "heroku builds:create -a ugcircle-backend",
+    "herokucheck": "heroku logs --tail --app ugcircle-backend",
     "dikkat": "npm install nodemon --save gerekti"
   },
   "author": "",
