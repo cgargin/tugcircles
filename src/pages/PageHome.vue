@@ -5,9 +5,17 @@
         <template v-if="!loadingPosts && posts.length > 0"
           ><q-card
             class="card-post q-mb-md"
+            :class="{ 'bg-red-3': post.offline }"
             v-for="post in posts"
             :key="post.id"
           >
+            <q-badge
+              color="red"
+              class="absolute-top-right badge-offline"
+              v-if="post.offline"
+            >
+              Stored offline
+            </q-badge>
             <q-item>
               <q-item-section avatar>
                 <q-avatar>
@@ -144,6 +152,7 @@
 </template>
 
 <script>
+import { openDB } from "idb";
 import { defineComponent } from "vue";
 import { date } from "quasar";
 export default defineComponent({
@@ -153,6 +162,12 @@ export default defineComponent({
       posts: [],
       loadingPosts: false,
     };
+  },
+  computed: {
+    serviceWorkerSupported() {
+      if ("serviceWorker" in navigator) return true;
+      return false;
+    },
   },
   methods: {
     sendDelete(postId) {
@@ -229,6 +244,9 @@ export default defineComponent({
         .then((response) => {
           this.loadingPosts = false;
           this.posts = response.data;
+          if (!navigator.onLine) {
+            this.getOfflinePosts();
+          }
         })
         .catch((err) => {
           this.loadingPosts = false;
@@ -238,15 +256,70 @@ export default defineComponent({
           });
         });
     },
+    getOfflinePosts() {
+      console.log("offline posts içinde");
+      let db = openDB("workbox-background-sync").then((db) => {
+        db.getAll("requests")
+          .then((offlineRequests) => {
+            offlineRequests.forEach((offlineRequest) => {
+              if (offlineRequest.queueName === "createPostQueue") {
+                let request = new Request(
+                  offlineRequest.requestData.url,
+                  offlineRequest.requestData
+                );
+                request.formData().then((formData) => {
+                  let offlinePost = {};
+                  offlinePost.id = formData.get("id");
+                  offlinePost.caption = formData.get("caption");
+                  offlinePost.location = formData.get("location");
+                  offlinePost.date = parseInt(formData.get("date"));
+                  offlinePost.favCount = formData.get("favCount");
+                  offlinePost.offline = true;
+
+                  let reader = new FileReader();
+                  reader.readAsDataURL(formData.get("file"));
+                  reader.onloadend = () => {
+                    offlinePost.imageUrl = reader.result;
+                    this.posts.unshift(offlinePost);
+                  };
+                });
+              }
+            });
+          })
+          .catch((err) => {
+            console.log("Error accessing indexed db: ", err);
+          });
+      });
+    },
+    listenForOfflinePostsUploaded() {
+      if (this.serviceWorkerSupported) {
+        console.log("Listen for offline posts uploaded");
+        const channel = new BroadcastChannel("sw-messages");
+        channel.addEventListener("message", (event) => {
+          console.log("received", event.data);
+          if (event.data.msg === "offline-post-uploaded") {
+            let offlinePostCount = this.posts.filter(
+              (post) => post.offline
+            ).length;
+            this.posts[offlinePostCount - 1].offline = false;
+          }
+        });
+      }
+    },
+  },
+  activated() {
+    this.getPosts();
   },
   mounted() {
-    this.getPosts();
+    this.listenForOfflinePostsUploaded();
   },
 });
 </script>
 
 <style lang="sass">
 .card-post
+  .badge-offline
+    border-top-left-radius:0 !important
   .q-image
     min-height:200px
 </style>

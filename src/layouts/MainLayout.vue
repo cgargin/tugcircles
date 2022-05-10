@@ -91,7 +91,9 @@
       </q-footer>
     </transition>
     <q-page-container class="bg-deep-orange-1">
-      <router-view />
+      <keep-alive :include="['PageHome']">
+        <router-view />
+      </keep-alive>
     </q-page-container>
   </q-layout>
 </template>
@@ -128,7 +130,6 @@ export default defineComponent({
     let neverShowAppInstallBanner = this.$q.localStorage.getItem(
       "neverShowAppInstallBanner"
     );
-    console.log("neverShowAppInstallBanner", neverShowAppInstallBanner);
     if (!neverShowAppInstallBanner) {
       window.addEventListener("beforeinstallprompt", (e) => {
         // Prevent the mini-infobar from appearing on mobile

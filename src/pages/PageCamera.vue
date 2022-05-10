@@ -7,6 +7,7 @@
         ref="video"
         v-show="!imageCaptured"
         playsinline
+        @click="videoClick"
       />
       <div class="text-caption text-center" v-show="!imageCaptured">
         {{ currentDeviceLabel }}
@@ -87,6 +88,7 @@
         label-color="deep-orange-10"
         color="deep-orange-10"
         v-model="post.caption"
+        ref="captionText"
       />
     </div>
     <div class="row justify-center q-ma-md">
@@ -126,8 +128,9 @@
 </template>
 
 <script>
+
 import { defineComponent } from "vue";
-import { format, uid } from "quasar";
+import { uid } from "quasar";
 require("md-gum-polyfill");
 export default defineComponent({
   name: "PageCamera",
@@ -155,6 +158,8 @@ export default defineComponent({
       imageUpload: [],
 
       loadingStateForLocation: false,
+      frontCameraOn: false,
+      rearCameraOn: false,
     };
   },
   computed: {
@@ -162,8 +167,15 @@ export default defineComponent({
       if (navigator.geolocation) return true;
       return false;
     },
+    backgroundSyncSupported() {
+      if ("serviceWorker" in navigator && "SyncManager" in window) return true;
+      return false;
+    },
   },
   methods: {
+    videoClick() {
+      this.captureImage();
+    },
     addPost() {
       let formData = new FormData();
       formData.append("id", this.post.id);
@@ -173,7 +185,7 @@ export default defineComponent({
       formData.append("favCount", this.post.favCount);
       formData.append("file", this.post.photo, this.post.id + ".png");
       this.$q.loading.show({
-        message: "Create post is in progress. Hang on...",
+        message: "Creating Post. Hang on...",
       });
       this.$axios
         .post(`${process.env.API}/createPost`, formData)
@@ -189,13 +201,22 @@ export default defineComponent({
           });
         })
         .catch((err) => {
-          this.$q.loading.hide();
-          this.$q.dialog({
-            title: "Error posting image",
-            message: err.message + ",could not connect to Server.",
-          });
+          if (!navigator.onLine && this.backgroundSyncSupported) {
+            //redirect to homePage
+
+            this.$q.notify("Post Created Offline");
+            this.$router.push("/");
+            this.$q.loading.hide();
+          } else {
+            this.$q.loading.hide();
+            this.$q.dialog({
+              title: "Error posting image",
+              message: err.message + ",could not connect to Server.",
+            });
+          }
         });
     },
+
     locationSuccess(result) {
       this.post.location = "";
       if (result.data.osmtags.name)
@@ -283,6 +304,7 @@ export default defineComponent({
       this.imageCaptured = true;
       this.post.photo = this.dataURItoBlob(canvas.toDataURL());
       this.disableCamera();
+      this.$refs.captionText.focus();
     },
     captureImageFallback(file) {
       this.post.photo = file;
@@ -313,6 +335,48 @@ export default defineComponent({
       });
     },
     initCamera() {
+      if (this.$q.platform.is.mobile) {
+        console.log("mobile device");
+        navigator.mediaDevices
+          .getUserMedia({
+            video: { facingMode: "user" },
+          })
+          .then((stream) => {
+            this.frontCameraOn = true;
+            this.rearCameraOn = false;
+            this.$refs.video.srcObject = stream;
+            this.currentStream = stream;
+            this.currentDeviceId = this.videoDevices[0].id;
+            this.currentDeviceLabel = this.videoDevices[0].label;
+          })
+          .catch((err) => {
+            console.log(err);
+            this.hasCameraSupport = false;
+            this.showFileUploader = true;
+            this.currentStream = null;
+            this.videoDeviceIndex = -1;
+          });
+      } else {
+        console.log("not mobile device");
+        navigator.mediaDevices
+          .getUserMedia({
+            video: true,
+          })
+          .then((stream) => {
+            this.$refs.video.srcObject = stream;
+            this.currentStream = stream;
+            this.currentDeviceId = this.videoDevices[0].id;
+            this.currentDeviceLabel = this.videoDevices[0].label;
+          })
+          .catch((err) => {
+            console.log(err);
+            this.hasCameraSupport = false;
+            this.showFileUploader = true;
+            this.currentStream = null;
+            this.videoDeviceIndex = -1;
+          });
+      }
+      return;
       navigator.mediaDevices
         .getUserMedia({
           video: true,
@@ -332,6 +396,49 @@ export default defineComponent({
         });
     },
     changeCamera() {
+      if (this.$q.platform.is.mobile) {
+        console.log("mobile device");
+        if (this.frontCameraOn) {
+          navigator.mediaDevices
+            .getUserMedia({
+              video: {
+                facingMode: { exact: "environment" },
+              },
+            })
+            .then((stream) => {
+              this.rearCameraOn = true;
+              this.frontCameraOn = false;
+              this.$refs.video.srcObject = stream;
+              this.currentStream = stream;
+            })
+            .catch((err) => {
+              console.log(err);
+              this.currentStream = null;
+              this.videoDeviceIndex = -1;
+            });
+        } else {
+          console.log("NOT mobile device");
+          navigator.mediaDevices
+            .getUserMedia({
+              video: {
+                facingMode: { exact: "user" },
+              },
+            })
+            .then((stream) => {
+              this.rearCameraOn = falsee;
+              this.frontCameraOn = true;
+              this.$refs.video.srcObject = stream;
+              this.currentStream = stream;
+            })
+            .catch((err) => {
+              console.log(err);
+              this.currentStream = null;
+              this.videoDeviceIndex = -1;
+            });
+        }
+        return;
+      }
+
       if (this.firstEntry) {
         this.videoDeviceIndex = 1;
         this.firstEntry = false;
