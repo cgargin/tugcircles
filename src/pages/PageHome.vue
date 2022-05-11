@@ -1,5 +1,50 @@
 <template>
   <q-page class="constrain q-pa-md">
+    <transition
+      appear
+      enter-active-class="animated fadeInLeftBig "
+      leave-active-class="animated fadeOutRightBig"
+    >
+      <div
+        class="bg-primary"
+        v-if="showNotificationsBanner && pushNotificationsSupported"
+      >
+        <div class="constrain">
+          <q-banner class="bg-grey-3 q-mb-md">
+            <template v-slot:avatar>
+              <q-icon color="primary" name="notifications" />
+            </template>
+            Would you like to enable notifications ?
+            <template v-slot:action>
+              <q-btn
+                flat
+                label="Yes"
+                dense
+                color="primary"
+                class="q-px-sm"
+                @click="enableNotifications"
+              />
+              <q-btn
+                flat
+                label="Later"
+                dense
+                color="primary"
+                class="q-px-sm"
+                @click="showNotificationsBanner = false"
+              />
+              <q-btn
+                flat
+                label="Never"
+                dense
+                color="primary"
+                class="q-px-sm"
+                @click="neverShowNotificationsBanner"
+              />
+            </template>
+          </q-banner>
+        </div>
+      </div>
+    </transition>
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-sm-8">
         <template v-if="!loadingPosts && posts.length > 0"
@@ -161,11 +206,20 @@ export default defineComponent({
     return {
       posts: [],
       loadingPosts: false,
+      showNotificationsBanner: false,
     };
   },
   computed: {
     serviceWorkerSupported() {
       if ("serviceWorker" in navigator) return true;
+      return false;
+    },
+    backgroundSyncSupported() {
+      if ("serviceWorker" in navigator && "SyncManager" in window) return true;
+      return false;
+    },
+    pushNotificationsSupported() {
+      if ("PushManager" in window) return true;
       return false;
     },
   },
@@ -190,11 +244,20 @@ export default defineComponent({
           });
         })
         .catch((err) => {
-          this.$q.loading.hide();
-          this.$q.dialog({
-            title: "Error deleting image",
-            message: err.message + ",could not connect to Server.",
-          });
+          if (!navigator.onLine && this.backgroundSyncSupported) {
+            this.$q.notify("Post Deleted Offline");
+            let indexToDelete = this.posts.findIndex(
+              (post) => post.id === postId
+            );
+            this.posts.splice(indexToDelete, 1);
+            this.$q.loading.hide();
+          } else {
+            this.$q.loading.hide();
+            this.$q.dialog({
+              title: "Error deleting post",
+              message: err.message + ",could not connect to Server.",
+            });
+          }
         });
     },
     deletePost(postId) {
@@ -228,10 +291,15 @@ export default defineComponent({
           console.log("FavCount increased", postId, favCount);
         })
         .catch((err) => {
-          this.$q.dialog({
-            title: "Error updating favCount",
-            message: err.message + ",could not connect to Server.",
-          });
+          if (!navigator.onLine && this.backgroundSyncSupported) {
+            this.$q.notify("Post Updated Offline");
+            selectedPost.favCount--;
+            this.$q.loading.hide();
+          } else
+            this.$q.dialog({
+              title: "Error updating favCount",
+              message: err.message + ",could not connect to Server.",
+            });
         });
     },
     niceDate(aNumericDate) {
@@ -297,21 +365,57 @@ export default defineComponent({
         const channel = new BroadcastChannel("sw-messages");
         channel.addEventListener("message", (event) => {
           console.log("received", event.data);
+
+          /*addPost*/
           if (event.data.msg === "offline-post-uploaded") {
             let offlinePostCount = this.posts.filter(
               (post) => post.offline
             ).length;
             this.posts[offlinePostCount - 1].offline = false;
           }
+
+          /*updatePost*/
+          if (event.data.msg === "offline-updatepost-executed") {
+            console.log("offline update posts executed");
+          }
+
+          /*deletePost*/
+          if (event.data.msg === "offline-deletepost-executed") {
+            console.log("offline delete posts executed");
+          }
         });
+      }
+    },
+    enableNotifications() {
+      if(this.pushNotificationsSupported){
+        Notification.requestPermission(result=>{
+          
+        })
+      }
+
+    },
+    neverShowNotificationsBanner() {
+      this.showNotificationsBanner = false;
+      this.$q.localStorage.set("neverShowNotificationsBanner", "true");
+    },
+    initNotificationsBanner() {
+      let neverShowNotificationsBanner = this.$q.localStorage.getItem(
+        "neverShowNotificationsBanner"
+      );
+
+      if (!neverShowNotificationsBanner) {
+        this.showNotificationsBanner = true;
       }
     },
   },
   activated() {
+    console.log("Activated");
     this.getPosts();
   },
-  mounted() {
+
+  created() {
     this.listenForOfflinePostsUploaded();
+    this.initNotificationsBanner();
   },
 });
 </script>

@@ -29,12 +29,12 @@
       </q-toolbar>
     </q-header>
 
-    <transition
-      appear
-      enter-active-class="animated fadeInLeftBig "
-      leave-active-class="animated fadeOutRightBig"
-    >
-      <q-footer class="bg-deep-orange-1" bordered>
+    <q-footer class="bg-deep-orange-1" bordered>
+      <transition
+        appear
+        enter-active-class="animated fadeInLeftBig "
+        leave-active-class="animated fadeOutRightBig"
+      >
         <div class="bg-primary" v-if="showAppInstallBanner">
           <div class="constrain">
             <q-banner
@@ -78,22 +78,23 @@
             </q-banner>
           </div>
         </div>
-
-        <q-tabs
-          class="text-deep-orange-10 small-screen-only"
-          active-bg-color="deep-orange-10"
-          active-color="white"
-          indicator-color="transparent"
-        >
-          <q-route-tab icon="home" to="/" />
-          <q-route-tab icon="camera" to="/camera" />
-        </q-tabs>
-      </q-footer>
-    </transition>
+      </transition>
+      <q-tabs
+        class="text-deep-orange-10 small-screen-only"
+        active-bg-color="deep-orange-10"
+        active-color="white"
+        indicator-color="transparent"
+      >
+        <q-route-tab icon="home" to="/" />
+        <q-route-tab icon="camera" to="/camera" />
+      </q-tabs>
+    </q-footer>
     <q-page-container class="bg-deep-orange-1">
-      <keep-alive :include="['PageHome']">
-        <router-view />
-      </keep-alive>
+      <router-view v-slot="{ Component }">
+        <keep-alive include="PageHome">
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
     </q-page-container>
   </q-layout>
 </template>
