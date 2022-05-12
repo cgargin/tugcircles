@@ -128,7 +128,6 @@
 </template>
 
 <script>
-
 import { defineComponent } from "vue";
 import { uid } from "quasar";
 require("md-gum-polyfill");
@@ -145,7 +144,7 @@ export default defineComponent({
         favCount: 0,
       },
       videoDevices: [],
-      videoDeviceIndex: null,
+      videoDeviceIndex: 0,
       currentStream: null,
       currentDeviceId: null,
       currentDeviceLabel: "",
@@ -158,8 +157,6 @@ export default defineComponent({
       imageUpload: [],
 
       loadingStateForLocation: false,
-      frontCameraOn: false,
-      rearCameraOn: false,
     };
   },
   computed: {
@@ -327,6 +324,7 @@ export default defineComponent({
     getVideoDevices(mediaDevices) {
       mediaDevices.forEach((mediaDevice) => {
         if (mediaDevice.kind === "videoinput") {
+          console.log("id:", mediaDevice.deviceId);
           this.videoDevices.push({
             id: mediaDevice.deviceId,
             label: mediaDevice.label,
@@ -335,48 +333,6 @@ export default defineComponent({
       });
     },
     initCamera() {
-      if (this.$q.platform.is.mobile) {
-        console.log("mobile device");
-        navigator.mediaDevices
-          .getUserMedia({
-            video: { facingMode: "user" },
-          })
-          .then((stream) => {
-            this.frontCameraOn = true;
-            this.rearCameraOn = false;
-            this.$refs.video.srcObject = stream;
-            this.currentStream = stream;
-            this.currentDeviceId = this.videoDevices[0].id;
-            this.currentDeviceLabel = this.videoDevices[0].label;
-          })
-          .catch((err) => {
-            console.log(err);
-            this.hasCameraSupport = false;
-            this.showFileUploader = true;
-            this.currentStream = null;
-            this.videoDeviceIndex = -1;
-          });
-      } else {
-        console.log("not mobile device");
-        navigator.mediaDevices
-          .getUserMedia({
-            video: true,
-          })
-          .then((stream) => {
-            this.$refs.video.srcObject = stream;
-            this.currentStream = stream;
-            this.currentDeviceId = this.videoDevices[0].id;
-            this.currentDeviceLabel = this.videoDevices[0].label;
-          })
-          .catch((err) => {
-            console.log(err);
-            this.hasCameraSupport = false;
-            this.showFileUploader = true;
-            this.currentStream = null;
-            this.videoDeviceIndex = -1;
-          });
-      }
-      return;
       navigator.mediaDevices
         .getUserMedia({
           video: true,
@@ -396,49 +352,6 @@ export default defineComponent({
         });
     },
     changeCamera() {
-      if (this.$q.platform.is.mobile) {
-        console.log("mobile device");
-        if (this.frontCameraOn) {
-          navigator.mediaDevices
-            .getUserMedia({
-              video: {
-                facingMode: { exact: "environment" },
-              },
-            })
-            .then((stream) => {
-              this.rearCameraOn = true;
-              this.frontCameraOn = false;
-              this.$refs.video.srcObject = stream;
-              this.currentStream = stream;
-            })
-            .catch((err) => {
-              console.log(err);
-              this.currentStream = null;
-              this.videoDeviceIndex = -1;
-            });
-        } else {
-          console.log("NOT mobile device");
-          navigator.mediaDevices
-            .getUserMedia({
-              video: {
-                facingMode: { exact: "user" },
-              },
-            })
-            .then((stream) => {
-              this.rearCameraOn = falsee;
-              this.frontCameraOn = true;
-              this.$refs.video.srcObject = stream;
-              this.currentStream = stream;
-            })
-            .catch((err) => {
-              console.log(err);
-              this.currentStream = null;
-              this.videoDeviceIndex = -1;
-            });
-        }
-        return;
-      }
-
       if (this.firstEntry) {
         this.videoDeviceIndex = 1;
         this.firstEntry = false;
@@ -453,7 +366,9 @@ export default defineComponent({
         this.currentDeviceId = this.videoDevices[0].id;
         this.currentDeviceLabel = this.videoDevices[0].label;
       } else {
+        console.log("Total device count=", this.videoDevices.length);
         this.videoDeviceIndex++;
+        console.log("this.videoDeviceIndex=", this.videoDeviceIndex);
         this.currentDeviceId = this.videoDevices[this.videoDeviceIndex].id;
         this.currentDeviceLabel =
           this.videoDevices[this.videoDeviceIndex].label;
@@ -491,6 +406,7 @@ export default defineComponent({
   },
   mounted() {
     navigator.mediaDevices.enumerateDevices().then(this.getVideoDevices);
+    console.log(this.videoDevices);
     this.initCamera();
   },
   beforeUnmount() {

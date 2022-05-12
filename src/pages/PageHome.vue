@@ -387,12 +387,56 @@ export default defineComponent({
       }
     },
     enableNotifications() {
-      if(this.pushNotificationsSupported){
-        Notification.requestPermission(result=>{
-          
-        })
+      if (this.pushNotificationsSupported) {
+        Notification.requestPermission((result) => {
+          console.log("result:", result);
+          this.neverShowNotificationsBanner();
+          if (result === "granted") {
+            // this.displayGrantedNotification();
+            this.checkForExistingPushSubscription();
+          }
+        });
       }
-
+    },
+    checkForExistingPushSubscription() {
+      if (this.serviceWorkerSupported && this.pushNotificationsSupported) {
+        navigator.serviceWorker.ready
+          .then((swreg) => {
+            return swreg.pushManager.getSubscription();
+          })
+          .then((subsc) => {
+            if (!subsc) console.log("create a push subscription");
+          });
+      }
+    },
+    displayGrantedNotification() {
+      if (this.serviceWorkerSupported && this.pushNotificationsSupported) {
+        navigator.serviceWorker.ready.then((swreg) => {
+          swreg.showNotification("You're subscribed to notifications!", {
+            body: "Thanks for subscribing",
+            icon: "icons/icon-128x128.png",
+            image: "project_images/notify.jpg",
+            badge: "icons/icon-128x128.png",
+            dir: "ltr",
+            lang: "en-US",
+            vibrate: [100, 50, 200],
+            tag: "confirm-notification",
+            renotify: true,
+            actions: [
+              {
+                action: "hello",
+                title: "Hello",
+                icon: "project_icons/hello.png",
+              },
+              {
+                action: "goodbye",
+                title: "Goodbye",
+                icon: "project_icons/goodbye.png",
+              },
+            ],
+          });
+        });
+      }
     },
     neverShowNotificationsBanner() {
       this.showNotificationsBanner = false;

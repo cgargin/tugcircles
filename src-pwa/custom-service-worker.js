@@ -220,3 +220,22 @@ if (backgroundsyncSupported) {
     }
   });
 }
+
+/*
+events - notifications
+*/
+self.addEventListener("notificationclick", (event) => {
+  let notification = event.notification;
+  let action = event.action;
+
+  if (action === "hello") {
+    console.log("Hello button clicked");
+  } else if (action === "goodbye") {
+    console.log("Goodbye button clicked");
+  } else {
+    console.log("Main notification clicked");
+  }
+  notification.close();
+});
+
+
